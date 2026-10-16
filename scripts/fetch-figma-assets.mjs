@@ -1,11 +1,13 @@
 // Downloads every static asset from the Figma frame (AR-DS, node 432:30)
-// into /public/assets. Run once with:  npm run assets
+// into /public/assets. Runs automatically before every build (prebuild) and
+// skips files that already exist, so committed assets are never overwritten.
+// Run manually with:  npm run assets
 //
 // The Figma asset links below are temporary (they expire ~7 days after
 // 16 Oct 2026). If they have expired, re-export the files from Figma with the
 // same names (see the "file" column) and drop them into /public/assets.
 
-import { mkdir, writeFile } from "node:fs/promises";
+import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const P =
@@ -37,6 +39,12 @@ let ok = 0;
 
 for (const [remote, file] of assets) {
   const dest = path.join(outDir, file);
+  try {
+    await access(dest);
+    console.log(`• ${file} (already present)`);
+    ok++;
+    continue;
+  } catch {}
   try {
     const res = await fetch(`${P}/${remote}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
